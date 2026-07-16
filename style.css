@@ -312,6 +312,29 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
 .settings-row{ display:flex; align-items:center; justify-content:space-between; gap: 12px; }
 .settings-title{ margin:0; font-size:13px; font-weight:700; }
 .settings-sub{ margin: 2px 0 0; font-size:12px; color: var(--text-muted); }
+.btn-secondary.small{ padding: 7px 12px; font-size:12px; }
+
+.subtask-editor{ display:flex; flex-direction:column; gap:8px; margin-bottom: 8px; }
+.subtask-editor-row{ display:flex; align-items:center; gap:8px; }
+.subtask-editor-row input{
+  flex:1; background: var(--bg); border:1px solid var(--border); color: var(--text);
+  padding: 8px 10px; border-radius: 8px; font-family: var(--font-body); font-size:13px;
+}
+.subtask-remove{
+  background:none; border:none; color: var(--rose); font-size:16px; cursor:pointer; width:28px; height:28px; flex-shrink:0;
+}
+
+.task-block{ }
+.subtask-list{ padding: 0 16px 10px 52px; display:flex; flex-direction:column; gap:8px; }
+.subtask-row{ display:flex; align-items:center; gap:10px; cursor:pointer; }
+.subtask-check{
+  width:18px; height:18px; border-radius:6px; border:2px solid var(--border); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.subtask-check.done{ background: var(--accent); border-color: var(--accent); }
+.subtask-row span{ font-size:12px; color: var(--text-muted); }
+.subtask-row span.done-text{ text-decoration: line-through; }
+
 .settings-note{ font-size:11px; color: var(--text-muted); margin: 10px 0 0; line-height:1.5; }
 .backup-actions{ display:flex; gap:10px; margin-top: 12px; }
 .backup-actions .btn-secondary{ flex:1; text-align:center; }

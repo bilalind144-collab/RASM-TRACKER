@@ -22,6 +22,30 @@ let calendarCursor = new Date(); // month currently shown in calendar view
 let editingTaskId = null;
 let editingCategoryId = null;
 let pendingTaskDays = [0, 1, 2, 3, 4, 5, 6];
+let pendingSubtasks = [];
+
+function renderSubtaskEditor() {
+  const holder = document.getElementById('subtaskEditor');
+  holder.innerHTML = '';
+  pendingSubtasks.forEach((st) => {
+    const row = document.createElement('div');
+    row.className = 'subtask-editor-row';
+    row.innerHTML = `<input type="text" value="${escapeHtml(st.name)}" placeholder="e.g. Azkar"><button type="button" class="subtask-remove">✕</button>`;
+    const input = row.querySelector('input');
+    input.addEventListener('input', () => { st.name = input.value; });
+    row.querySelector('.subtask-remove').addEventListener('click', () => {
+      pendingSubtasks = pendingSubtasks.filter(s => s.id !== st.id);
+      renderSubtaskEditor();
+    });
+    holder.appendChild(row);
+  });
+}
+document.getElementById('addSubtaskBtn').addEventListener('click', () => {
+  pendingSubtasks.push({ id: uid(), name: '' });
+  renderSubtaskEditor();
+  const inputs = document.querySelectorAll('#subtaskEditor input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+});
 
 /* ---------- Storage ---------- */
 function loadState() {
@@ -57,7 +81,7 @@ function seedDefaults() {
   ];
   const [rel, edu, health, fin] = state.categories;
   state.tasks = [
-    task(rel.id, 'Fajr', '05:00', 'high', true, today),
+    task(rel.id, 'Fajr', '05:00', 'high', true, today, undefined, [{ id: uid(), name: 'Azkar' }]),
     task(rel.id, 'Dhuhr', '12:30', 'high', true, today),
     task(rel.id, 'Asr', '15:45', 'high', true, today),
     task(rel.id, 'Maghrib', '18:20', 'high', true, today),
@@ -72,10 +96,10 @@ function seedDefaults() {
   saveState();
 }
 
-function task(categoryId, name, time, importance, notify, createdAt, days) {
+function task(categoryId, name, time, importance, notify, createdAt, days, subtasks) {
   return {
     id: uid(), categoryId, name, time, importance, notify: !!notify,
-    days: days || [0, 1, 2, 3, 4, 5, 6], createdAt,
+    days: days || [0, 1, 2, 3, 4, 5, 6], createdAt, subtasks: subtasks || [],
   };
 }
 
@@ -90,6 +114,24 @@ function fromKey(k) { const [y, m, d] = k.split('-').map(Number); return new Dat
 function addDays(d, n) { const nd = new Date(d); nd.setDate(nd.getDate() + n); return nd; }
 function isSameDay(a, b) { return dateKey(a) === dateKey(b); }
 
+function isTaskDone(t, key) {
+  const log = state.logs[key];
+  if (t.subtasks && t.subtasks.length > 0) {
+    const sd = log && log.subtasksDone && log.subtasksDone[t.id];
+    if (!sd) return false;
+    return t.subtasks.every(st => sd[st.id]);
+  }
+  return !!(log && log.done && log.done[t.id]);
+}
+
+function subtaskDoneCount(t, key) {
+  if (!t.subtasks || t.subtasks.length === 0) return 0;
+  const log = state.logs[key];
+  const sd = log && log.subtasksDone && log.subtasksDone[t.id];
+  if (!sd) return 0;
+  return t.subtasks.filter(st => sd[st.id]).length;
+}
+
 /* ---------- Stats ---------- */
 function tasksForDate(dateObj) {
   const key = dateKey(dateObj);
@@ -100,8 +142,7 @@ function tasksForDate(dateObj) {
 function dayStats(dateObj) {
   const key = dateKey(dateObj);
   const scheduled = tasksForDate(dateObj);
-  const log = state.logs[key] || { done: {} };
-  const completed = scheduled.filter(t => log.done && log.done[t.id]).length;
+  const completed = scheduled.filter(t => isTaskDone(t, key)).length;
   const total = scheduled.length;
   const pct = total === 0 ? null : Math.round((completed / total) * 100);
   return { total, completed, pct, scheduled, key };
@@ -154,7 +195,6 @@ function renderToday() {
   container.innerHTML = '';
   const weekday = now.getDay();
   const key = dateKey(now);
-  const log = state.logs[key] || { done: {} };
 
   let anyTasks = false;
 
@@ -162,7 +202,7 @@ function renderToday() {
     const catTasks = state.tasks.filter(t => t.categoryId === cat.id && t.days.includes(weekday) && t.createdAt <= key);
     if (catTasks.length === 0) return;
     anyTasks = true;
-    const done = catTasks.filter(t => log.done && log.done[t.id]).length;
+    const done = catTasks.filter(t => isTaskDone(t, key)).length;
     const card = document.createElement('div');
     card.className = 'category-card';
     card.innerHTML = `
@@ -177,7 +217,10 @@ function renderToday() {
     catTasks
       .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
       .forEach(t => {
-        const isDone = !!(log.done && log.done[t.id]);
+        const isDone = isTaskDone(t, key);
+        const hasSubtasks = t.subtasks && t.subtasks.length > 0;
+        const block = document.createElement('div');
+        block.className = 'task-block';
         const row = document.createElement('div');
         row.className = 'task-row';
         row.innerHTML = `
@@ -190,6 +233,7 @@ function renderToday() {
               <span class="importance-flag importance-${t.importance}"></span>
               ${t.time ? `<span>${t.time}</span>` : ''}
               ${t.notify ? `<svg class="notify-icon" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg>` : ''}
+              ${hasSubtasks ? `<span>${subtaskDoneCount(t, key)}/${t.subtasks.length} steps</span>` : ''}
             </div>
           </div>
         `;
@@ -198,7 +242,24 @@ function renderToday() {
           toggleTaskDone(t.id, key);
         });
         row.addEventListener('click', () => openTaskModal(t));
-        holder.appendChild(row);
+        block.appendChild(row);
+
+        if (hasSubtasks) {
+          const subList = document.createElement('div');
+          subList.className = 'subtask-list';
+          t.subtasks.forEach(st => {
+            const sd = state.logs[key] && state.logs[key].subtasksDone && state.logs[key].subtasksDone[t.id];
+            const stDone = !!(sd && sd[st.id]);
+            const srow = document.createElement('div');
+            srow.className = 'subtask-row';
+            srow.innerHTML = `<div class="subtask-check ${stDone ? 'done' : ''}"></div><span class="${stDone ? 'done-text' : ''}">${escapeHtml(st.name)}</span>`;
+            srow.addEventListener('click', (e) => { e.stopPropagation(); toggleSubtask(t.id, st.id, key); });
+            subList.appendChild(srow);
+          });
+          block.appendChild(subList);
+        }
+
+        holder.appendChild(block);
       });
     container.appendChild(card);
   });
@@ -207,9 +268,29 @@ function renderToday() {
 }
 
 function toggleTaskDone(taskId, key) {
-  if (!state.logs[key]) state.logs[key] = { done: {} };
+  const t = state.tasks.find(x => x.id === taskId);
+  if (!state.logs[key]) state.logs[key] = { done: {}, subtasksDone: {} };
   if (!state.logs[key].done) state.logs[key].done = {};
-  state.logs[key].done[taskId] = !state.logs[key].done[taskId];
+  if (!state.logs[key].subtasksDone) state.logs[key].subtasksDone = {};
+
+  if (t && t.subtasks && t.subtasks.length > 0) {
+    // Tapping the parent checkbox on a task with subtasks toggles all of them together.
+    const allDone = isTaskDone(t, key);
+    const obj = {};
+    t.subtasks.forEach(st => { obj[st.id] = !allDone; });
+    state.logs[key].subtasksDone[taskId] = obj;
+  } else {
+    state.logs[key].done[taskId] = !state.logs[key].done[taskId];
+  }
+  saveState();
+  renderAll();
+}
+
+function toggleSubtask(taskId, subtaskId, key) {
+  if (!state.logs[key]) state.logs[key] = { done: {}, subtasksDone: {} };
+  if (!state.logs[key].subtasksDone) state.logs[key].subtasksDone = {};
+  if (!state.logs[key].subtasksDone[taskId]) state.logs[key].subtasksDone[taskId] = {};
+  state.logs[key].subtasksDone[taskId][subtaskId] = !state.logs[key].subtasksDone[taskId][subtaskId];
   saveState();
   renderAll();
 }
@@ -303,9 +384,8 @@ function renderInsights() {
       const key = dateKey(d);
       const weekday = d.getDay();
       const catTasks = state.tasks.filter(t => t.categoryId === cat.id && t.days.includes(weekday) && t.createdAt <= key);
-      const log = state.logs[key] || { done: {} };
       totalScheduled += catTasks.length;
-      totalDone += catTasks.filter(t => log.done && log.done[t.id]).length;
+      totalDone += catTasks.filter(t => isTaskDone(t, key)).length;
     }
     const pct = totalScheduled === 0 ? 0 : Math.round((totalDone / totalScheduled) * 100);
     const row = document.createElement('div');
@@ -355,7 +435,7 @@ function renderManage() {
       row.className = 'manage-task-row';
       row.innerHTML = `
         <span class="importance-flag importance-${t.importance}"></span>
-        <span class="name">${escapeHtml(t.name)}${t.time ? ' · ' + t.time : ''}</span>
+        <span class="name">${escapeHtml(t.name)}${t.time ? ' · ' + t.time : ''}${t.subtasks && t.subtasks.length ? ` · ${t.subtasks.length} subtask${t.subtasks.length > 1 ? 's' : ''}` : ''}</span>
         <button class="edit-link" data-edittask="${t.id}">Edit</button>
       `;
       holder.appendChild(row);
@@ -391,7 +471,6 @@ function renderAll() {
 /* ---------- Day detail modal ---------- */
 function openDayModal(dateObj) {
   const { scheduled, key } = dayStats(dateObj);
-  const log = state.logs[key] || { done: {} };
   document.getElementById('dayModalTitle').textContent = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const body = document.getElementById('dayModalBody');
   body.innerHTML = '';
@@ -401,12 +480,23 @@ function openDayModal(dateObj) {
     scheduled
       .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
       .forEach(t => {
-        const isDone = !!(log.done && log.done[t.id]);
+        const isDone = isTaskDone(t, key);
         const cat = state.categories.find(c => c.id === t.categoryId);
         const row = document.createElement('div');
         row.className = 'day-detail-row';
         row.innerHTML = `<span class="dd-check ${isDone ? 'done' : 'missed'}"></span><span>${cat ? cat.icon : ''} ${escapeHtml(t.name)}${t.time ? ' · ' + t.time : ''}</span>`;
         body.appendChild(row);
+        if (t.subtasks && t.subtasks.length > 0) {
+          const sd = state.logs[key] && state.logs[key].subtasksDone && state.logs[key].subtasksDone[t.id];
+          t.subtasks.forEach(st => {
+            const stDone = !!(sd && sd[st.id]);
+            const srow = document.createElement('div');
+            srow.className = 'day-detail-row';
+            srow.style.paddingLeft = '24px';
+            srow.innerHTML = `<span class="dd-check ${stDone ? 'done' : 'missed'}" style="width:12px;height:12px"></span><span style="font-size:12px;color:var(--text-muted)">${escapeHtml(st.name)}</span>`;
+            body.appendChild(srow);
+          });
+        }
       });
   }
   document.getElementById('dayModal').hidden = false;
@@ -422,6 +512,8 @@ function openTaskModal(t, presetCategoryId) {
   document.getElementById('taskImportance').value = t ? t.importance : 'medium';
   document.getElementById('taskNotify').checked = t ? t.notify : false;
   pendingTaskDays = t ? [...t.days] : [0, 1, 2, 3, 4, 5, 6];
+  pendingSubtasks = t && t.subtasks ? t.subtasks.map(st => ({ ...st })) : [];
+  renderSubtaskEditor();
 
   const sel = document.getElementById('taskCategory');
   sel.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.icon} ${escapeHtml(c.name)}</option>`).join('');
@@ -455,12 +547,13 @@ document.getElementById('saveTaskBtn').addEventListener('click', () => {
   const time = document.getElementById('taskTime').value;
   const importance = document.getElementById('taskImportance').value;
   const notify = document.getElementById('taskNotify').checked;
+  const subtasks = pendingSubtasks.map(s => ({ id: s.id, name: s.name.trim() })).filter(s => s.name);
 
   if (editingTaskId) {
     const t = state.tasks.find(x => x.id === editingTaskId);
-    Object.assign(t, { name, categoryId, time, importance, notify, days: [...pendingTaskDays] });
+    Object.assign(t, { name, categoryId, time, importance, notify, days: [...pendingTaskDays], subtasks });
   } else {
-    state.tasks.push(task(categoryId, name, time, importance, notify, dateKey(new Date()), [...pendingTaskDays]));
+    state.tasks.push(task(categoryId, name, time, importance, notify, dateKey(new Date()), [...pendingTaskDays], subtasks));
   }
   saveState();
   document.getElementById('taskModal').hidden = true;
@@ -572,9 +665,7 @@ function scheduleTodayNotifications() {
       const diff = target.getTime() - now.getTime();
       if (diff > 0 && diff < 24 * 60 * 60 * 1000) {
         const id = setTimeout(() => {
-          const log = state.logs[key];
-          const already = log && log.done && log.done[t.id];
-          if (!already) new Notification('Rasm', { body: t.name, icon: 'icon.svg' });
+          if (!isTaskDone(t, key)) new Notification('Rasm', { body: t.name, icon: 'icon.svg' });
         }, diff);
         scheduledTimers.push(id);
       }

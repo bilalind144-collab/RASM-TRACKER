@@ -18,7 +18,13 @@
 
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark">رسم</span>
+      <span class="brand-mark">
+        <svg viewBox="0 0 128 128" width="26" height="26">
+          <rect x="38" y="38" width="52" height="52" fill="none" stroke="#4FA095" stroke-width="7" stroke-linejoin="round"/>
+          <rect x="38" y="38" width="52" height="52" fill="none" stroke="#D2A24C" stroke-width="7" stroke-linejoin="round" transform="rotate(45 64 64)"/>
+          <circle cx="64" cy="64" r="8" fill="#EDEAE2"/>
+        </svg>
+      </span>
       <div class="brand-text">
         <h1>Rasm</h1>
         <p id="todayDate" class="brand-sub">—</p>
@@ -210,6 +216,11 @@
         <button type="button" data-day="5">F</button>
         <button type="button" data-day="6">S</button>
       </div>
+    </label>
+    <label class="field">
+      <span>Subtasks (optional)</span>
+      <div class="subtask-editor" id="subtaskEditor"></div>
+      <button type="button" id="addSubtaskBtn" class="btn-secondary small">+ Add subtask</button>
     </label>
     <label class="field-inline">
       <input type="checkbox" id="taskNotify">
