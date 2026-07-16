@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rasm · Daily Routine Tracker</title>
+<meta name="theme-color" content="#0F1D22">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">رسم</span>
+      <div class="brand-text">
+        <h1>Rasm</h1>
+        <p id="todayDate" class="brand-sub">—</p>
+      </div>
+    </div>
+    <button id="themeToggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.35-.02-.7-.05-1.04A7 7 0 0 1 12 3Z"/></svg>
+    </button>
+  </header>
+
+  <main>
+
+    <!-- TODAY VIEW -->
+    <section id="view-today" class="view active">
+
+      <div class="ring-hero">
+        <svg class="ring" viewBox="0 0 140 140" width="140" height="140">
+          <circle class="ring-track" cx="70" cy="70" r="60"></circle>
+          <circle id="ringProgress" class="ring-progress" cx="70" cy="70" r="60"></circle>
+        </svg>
+        <div class="ring-label">
+          <span id="ringPercent">0%</span>
+          <span class="ring-caption">today</span>
+        </div>
+      </div>
+
+      <div class="streak-row">
+        <div class="streak-chip">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 2c1 3-2 4-2 7a4 4 0 0 0 8 0c0-1-.3-1.8-.7-2.6 2 1 3.7 3.4 3.7 6.1a7 7 0 0 1-14 0C7 8 9 5 12 2Z"/></svg>
+          <span id="streakCount">0</span> day streak
+        </div>
+        <div class="bead-chain" id="beadChain"></div>
+      </div>
+
+      <div class="section-divider"><span>your day</span></div>
+
+      <div id="todayCategories" class="categories-list"></div>
+
+      <div id="emptyToday" class="empty-state" hidden>
+        <p>Nothing scheduled yet.</p>
+        <p class="empty-sub">Add a category and a few tasks to start building today's rhythm.</p>
+      </div>
+
+      <button class="fab" id="addTaskFab" aria-label="Add task">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/></svg>
+      </button>
+    </section>
+
+    <!-- CALENDAR VIEW -->
+    <section id="view-calendar" class="view">
+      <div class="month-nav">
+        <button id="prevMonth" class="icon-btn">‹</button>
+        <h2 id="monthLabel">—</h2>
+        <button id="nextMonth" class="icon-btn">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div id="calGrid" class="cal-grid"></div>
+      <div class="cal-legend">
+        <span class="dot band-none"></span> none
+        <span class="dot band-low"></span> &lt;50%
+        <span class="dot band-mid"></span> 50–99%
+        <span class="dot band-full"></span> 100%
+      </div>
+    </section>
+
+    <!-- INSIGHTS VIEW -->
+    <section id="view-insights" class="view">
+      <div class="section-divider first"><span>this week</span></div>
+      <div class="bead-chain large" id="weekBeadChain"></div>
+
+      <div class="section-divider"><span>last 30 days</span></div>
+      <div id="monthBars" class="month-bars"></div>
+
+      <div class="section-divider"><span>by category</span></div>
+      <div id="categoryBreakdown" class="category-breakdown"></div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-num" id="statBestStreak">0</span>
+          <span class="stat-label">best streak</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statAvg30">0%</span>
+          <span class="stat-label">30-day average</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statPerfectDays">0</span>
+          <span class="stat-label">perfect days (30d)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- MANAGE VIEW -->
+    <section id="view-manage" class="view">
+      <div class="section-divider first"><span>categories &amp; tasks</span></div>
+      <div id="manageList" class="manage-list"></div>
+      <button id="addCategoryBtn" class="btn-secondary full">+ Add category</button>
+
+      <div class="section-divider"><span>reminders</span></div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <p class="settings-title">Browser notifications</p>
+            <p class="settings-sub" id="notifStatus">Not enabled yet</p>
+          </div>
+          <button id="enableNotifBtn" class="btn-secondary">Enable</button>
+        </div>
+        <p class="settings-note">Reminders fire while Rasm is open in a tab, or installed to your home screen on Android. iOS Safari limits background alarms even when installed — for prayer times or anything critical, keep your phone's own clock/alarm app as backup.</p>
+      </div>
+
+      <div class="section-divider"><span>backup</span></div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div>
+            <p class="settings-title">Your data lives only on this device</p>
+            <p class="settings-sub">Export a backup regularly, especially before clearing browser data or switching phones.</p>
+          </div>
+        </div>
+        <div class="backup-actions">
+          <button id="exportBtn" class="btn-secondary">Export JSON</button>
+          <label class="btn-secondary file-label">
+            Import JSON
+            <input type="file" id="importInput" accept="application/json" hidden>
+          </label>
+        </div>
+      </div>
+
+      <div class="section-divider"><span>reset</span></div>
+      <button id="resetBtn" class="btn-danger full">Erase all data</button>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-view="today">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2 2 8v13h7v-7h6v7h7V8L12 2Z"/></svg>
+      <span>Today</span>
+    </button>
+    <button class="tab-btn" data-view="calendar">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm-2 7h14v10H5V9Z"/></svg>
+      <span>Calendar</span>
+    </button>
+    <button class="tab-btn" data-view="insights">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z"/></svg>
+      <span>Insights</span>
+    </button>
+    <button class="tab-btn" data-view="manage">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M11 2h2l.3 2.4a7 7 0 0 1 1.9.8l2-1.2 1.7 1.7-1.2 2c.4.6.7 1.2.8 1.9L21 10v2l-2.4.3a7 7 0 0 1-.8 1.9l1.2 2-1.7 1.7-2-1.2a7 7 0 0 1-1.9.8L13 20h-2l-.3-2.4a7 7 0 0 1-1.9-.8l-2 1.2-1.7-1.7 1.2-2a7 7 0 0 1-.8-1.9L3 12v-2l2.4-.3a7 7 0 0 1 .8-1.9l-1.2-2 1.7-1.7 2 1.2a7 7 0 0 1 1.9-.8L11 2Zm1 6.5A3.5 3.5 0 1 0 12 15a3.5 3.5 0 0 0 0-6.5Z"/></svg>
+      <span>Manage</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Task modal -->
+<div id="taskModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="taskModalTitle">Add task</h3>
+    <label class="field">
+      <span>Task name</span>
+      <input type="text" id="taskName" placeholder="e.g. Fajr">
+    </label>
+    <label class="field">
+      <span>Category</span>
+      <select id="taskCategory"></select>
+    </label>
+    <label class="field">
+      <span>Time (optional)</span>
+      <input type="time" id="taskTime">
+    </label>
+    <label class="field">
+      <span>Importance</span>
+      <select id="taskImportance">
+        <option value="low">Low</option>
+        <option value="medium" selected>Medium</option>
+        <option value="high">High</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Repeat on</span>
+      <div class="day-picker" id="taskDays">
+        <button type="button" data-day="0">S</button>
+        <button type="button" data-day="1">M</button>
+        <button type="button" data-day="2">T</button>
+        <button type="button" data-day="3">W</button>
+        <button type="button" data-day="4">T</button>
+        <button type="button" data-day="5">F</button>
+        <button type="button" data-day="6">S</button>
+      </div>
+    </label>
+    <label class="field-inline">
+      <input type="checkbox" id="taskNotify">
+      <span>Remind me at this time</span>
+    </label>
+    <div class="modal-actions">
+      <button id="deleteTaskBtn" class="btn-danger" hidden>Delete</button>
+      <button id="cancelTaskBtn" class="btn-secondary">Cancel</button>
+      <button id="saveTaskBtn" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category modal -->
+<div id="categoryModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="categoryModalTitle">Add category</h3>
+    <label class="field">
+      <span>Symbol</span>
+      <input type="text" id="categoryIcon" maxlength="2" placeholder="⭐">
+    </label>
+    <label class="field">
+      <span>Name</span>
+      <input type="text" id="categoryName" placeholder="e.g. Religious">
+    </label>
+    <label class="field">
+      <span>Color</span>
+      <div class="color-picker" id="categoryColor"></div>
+    </label>
+    <div class="modal-actions">
+      <button id="deleteCategoryBtn" class="btn-danger" hidden>Delete</button>
+      <button id="cancelCategoryBtn" class="btn-secondary">Cancel</button>
+      <button id="saveCategoryBtn" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day detail modal -->
+<div id="dayModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="dayModalTitle">—</h3>
+    <div id="dayModalBody" class="day-detail"></div>
+    <div class="modal-actions">
+      <button id="closeDayBtn" class="btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>
