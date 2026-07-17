@@ -178,6 +178,13 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
   border-radius: var(--radius);
   overflow: hidden;
 }
+.cat-toggle{
+  background:none; border:none; color: var(--text-muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; padding:2px; flex-shrink:0;
+}
+.cat-toggle svg{ transition: transform .2s ease; }
+.cat-toggle.collapsed svg{ transform: rotate(-90deg); }
+
 .category-header{
   display:flex; align-items:center; gap:10px;
   padding: 14px 16px;
@@ -202,6 +209,8 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
   color: transparent;
 }
 .task-check.done{ background: var(--accent); border-color: var(--accent); color: #06110F; }
+.task-check.derived{ cursor: default; }
+.task-check.derived.done{ background: var(--accent-strong); border-color: var(--accent-strong); }
 .task-info{ flex:1; min-width:0; }
 .task-name{ font-size:14px; font-weight:600; }
 .task-name.done-text{ text-decoration: line-through; color: var(--text-muted); }
@@ -332,7 +341,7 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
   display:flex; align-items:center; justify-content:center;
 }
 .subtask-check.done{ background: var(--accent); border-color: var(--accent); }
-.subtask-row span{ font-size:12px; color: var(--text-muted); }
+.subtask-row span{ font-size:12px; color: var(--text-muted); flex:1; }
 .subtask-row span.done-text{ text-decoration: line-through; }
 
 .settings-note{ font-size:11px; color: var(--text-muted); margin: 10px 0 0; line-height:1.5; }
@@ -424,10 +433,11 @@ textarea{
 
 /* Attach button on task/subtask rows */
 .attach-btn{
-  background:none; border:none; cursor:pointer; font-size:13px; padding:2px 4px;
+  background:none; border:none; cursor:pointer; padding:4px; flex-shrink:0;
   display:inline-flex; align-items:center; gap:3px; color: var(--text-muted);
   position: relative;
 }
+.attach-btn:hover{ color: var(--accent-strong); }
 .attach-badge{
   background: var(--accent); color:#06110F; font-family: var(--font-mono);
   font-size:9px; border-radius:999px; padding:0 5px; line-height:14px;

@@ -23,6 +23,7 @@ let editingTaskId = null;
 let editingCategoryId = null;
 let pendingTaskDays = [0, 1, 2, 3, 4, 5, 6];
 let pendingSubtasks = [];
+let collapsedCategories = new Set();
 
 function renderSubtaskEditor() {
   const holder = document.getElementById('subtaskEditor');
@@ -209,16 +210,25 @@ function renderToday() {
     if (catTasks.length === 0) return;
     anyTasks = true;
     const done = catTasks.filter(t => isTaskDone(t, key)).length;
+    const isCollapsed = collapsedCategories.has(cat.id);
     const card = document.createElement('div');
     card.className = 'category-card';
     card.innerHTML = `
       <div class="category-header">
+        <button class="cat-toggle ${isCollapsed ? 'collapsed' : ''}" data-cat-toggle="${cat.id}">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg>
+        </button>
         <span class="category-icon">${cat.icon}</span>
         <h3>${escapeHtml(cat.name)}</h3>
         <span class="cat-pct">${done}/${catTasks.length}</span>
       </div>
-      <div class="tasks-holder"></div>
+      <div class="tasks-holder" ${isCollapsed ? 'hidden' : ''}></div>
     `;
+    card.querySelector('.cat-toggle').addEventListener('click', () => {
+      if (collapsedCategories.has(cat.id)) collapsedCategories.delete(cat.id);
+      else collapsedCategories.add(cat.id);
+      renderToday();
+    });
     const holder = card.querySelector('.tasks-holder');
     catTasks
       .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
@@ -230,7 +240,7 @@ function renderToday() {
         const row = document.createElement('div');
         row.className = 'task-row';
         row.innerHTML = `
-          <div class="task-check ${isDone ? 'done' : ''}" data-task="${t.id}">
+          <div class="task-check ${isDone ? 'done' : ''} ${hasSubtasks ? 'derived' : ''}" data-task="${t.id}">
             <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="m9 16.2-3.5-3.5L4 14.2 9 19.2l11-11-1.5-1.5z"/></svg>
           </div>
           <div class="task-info">
@@ -242,7 +252,7 @@ function renderToday() {
               ${hasSubtasks ? `<span>${subtaskDoneCount(t, key)}/${t.subtasks.length} steps</span>` : ''}
             </div>
           </div>
-          <button class="attach-btn" data-attach-task="${t.id}">📎${t.attachments && t.attachments.length ? `<span class="attach-badge">${t.attachments.length}</span>` : ''}</button>
+          <button class="attach-btn" data-attach-task="${t.id}"><svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20.5 12.5 12 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L9.9 19a2 2 0 0 1-3-3l7.6-7.6"/></svg>${t.attachments && t.attachments.length ? `<span class="attach-badge">${t.attachments.length}</span>` : ''}</button>
         `;
         row.querySelector('.task-check').addEventListener('click', (e) => {
           e.stopPropagation();
@@ -263,7 +273,7 @@ function renderToday() {
             const stDone = !!(sd && sd[st.id]);
             const srow = document.createElement('div');
             srow.className = 'subtask-row';
-            srow.innerHTML = `<div class="subtask-check ${stDone ? 'done' : ''}"></div><span class="${stDone ? 'done-text' : ''}">${escapeHtml(st.name)}</span><button class="attach-btn" data-attach-task="${t.id}" data-attach-subtask="${st.id}">📎${st.attachments && st.attachments.length ? `<span class="attach-badge">${st.attachments.length}</span>` : ''}</button>`;
+            srow.innerHTML = `<div class="subtask-check ${stDone ? 'done' : ''}"></div><span class="${stDone ? 'done-text' : ''}">${escapeHtml(st.name)}</span><button class="attach-btn" data-attach-task="${t.id}" data-attach-subtask="${st.id}"><svg viewBox="0 0 24 24" width="13" height="13"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20.5 12.5 12 21a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L9.9 19a2 2 0 0 1-3-3l7.6-7.6"/></svg>${st.attachments && st.attachments.length ? `<span class="attach-badge">${st.attachments.length}</span>` : ''}</button>`;
             srow.addEventListener('click', (e) => {
               if (e.target.closest('.attach-btn')) return;
               toggleSubtask(t.id, st.id, key);
@@ -287,19 +297,15 @@ function renderToday() {
 
 function toggleTaskDone(taskId, key) {
   const t = state.tasks.find(x => x.id === taskId);
+  if (t && t.subtasks && t.subtasks.length > 0) {
+    // Completion for tasks with subtasks is derived entirely from the subtasks below —
+    // tapping the parent checkbox no longer force-completes them.
+    showToast('Complete the steps below to finish this task');
+    return;
+  }
   if (!state.logs[key]) state.logs[key] = { done: {}, subtasksDone: {} };
   if (!state.logs[key].done) state.logs[key].done = {};
-  if (!state.logs[key].subtasksDone) state.logs[key].subtasksDone = {};
-
-  if (t && t.subtasks && t.subtasks.length > 0) {
-    // Tapping the parent checkbox on a task with subtasks toggles all of them together.
-    const allDone = isTaskDone(t, key);
-    const obj = {};
-    t.subtasks.forEach(st => { obj[st.id] = !allDone; });
-    state.logs[key].subtasksDone[taskId] = obj;
-  } else {
-    state.logs[key].done[taskId] = !state.logs[key].done[taskId];
-  }
+  state.logs[key].done[taskId] = !state.logs[key].done[taskId];
   saveState();
   renderAll();
 }
