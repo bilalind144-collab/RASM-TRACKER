@@ -15,6 +15,7 @@ All data is stored **only in your phone's browser storage** (localStorage). Noth
 ## Important things to know
 
 - **Data is per-browser, per-device.** If you switch phones, reinstall the browser, or clear site data, your history is gone unless you've exported a backup. Use **Manage → Backup → Export JSON** regularly, and **Import JSON** to restore it.
+- **Attachments share the same ~5–10MB storage budget as everything else.** Notes and links cost almost nothing. Images are auto-resized to keep them small. Audio/video files are capped at 3MB each here, but even a few of those can fill up the available space — if you see a "storage is full" message, delete a few attachments (images/audio/video first) or export a backup and do a full reset, then re-add what you need. For anything long (a full recitation, a long lecture), a Link is far more reliable than uploading the file.
 - **Notifications/alarms have real limits.** Browsers can only remind you while the app tab is open, or (on Android, once installed to the home screen) while it's running in the background. iOS Safari is much stricter about background notifications even for installed web apps. For anything as important as prayer times, keep this as a *helper*, not your only alarm — pair it with your phone's built-in clock/alarm app.
 - Tasks recur on the days of the week you choose (default: every day). A task only starts counting from the day you created it, so adding a new habit today won't retroactively mark earlier days as "missed."
 - Deleting a category deletes its tasks. Deleting a task doesn't delete past history for it — it just stops being scheduled going forward.
@@ -23,12 +24,15 @@ All data is stored **only in your phone's browser storage** (localStorage). Noth
 
 - Categories with custom name, emoji icon, and color (Religious, Educational, Health, Financial, or anything you add)
 - Tasks with optional time, importance (low/medium/high), an independent reminder toggle, and custom day-of-week repeat
+- **Subtasks** — break a task into steps (e.g. Fajr → Azkar). Checking every subtask automatically marks the parent task done; tapping the parent's own checkbox toggles all its subtasks at once.
+- **Attachments** — tap the 📎 icon on any task or subtask to attach a note, image, audio clip, video clip, or link right there (e.g. put the text of Ayat al-Kursi, or a recitation audio, on the "Azkar" subtask itself). See the storage note below.
 - **Today** view: a progress ring for the day, a streak counter, a "week at a glance" bead row, and your tasks grouped by category
-- **Calendar** view: tap any past date to see exactly what was scheduled and what you completed
+- **Calendar** view: tap any past date to see exactly what was scheduled and what you completed, including subtask detail
 - **Insights** view: this week's beads, a 30-day bar chart, a per-category completion breakdown, best streak, 30-day average, and perfect-day count
 - **Manage** view: edit/add/delete categories and tasks, enable notifications, export/import a JSON backup, and a full data reset
 - Light/dark theme toggle
 - Installable as a home-screen app (PWA) with basic offline caching
+- A small geometric mark (two overlapping squares forming an 8-point star, echoing the app's section dividers) as the logo, used both as the home-screen icon and the in-app header mark
 
 ## Ideas for later (not built yet, but easy to layer on)
 

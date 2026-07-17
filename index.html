@@ -189,6 +189,10 @@
       <span>Task name</span>
       <input type="text" id="taskName" placeholder="e.g. Fajr">
     </label>
+    <button type="button" id="taskAttachBtn" class="btn-secondary small attach-btn">
+      <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M16.5 6.5v10a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v9.5a1 1 0 0 1-2 0V6H10v8.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v11.5a5.5 5.5 0 0 0 11 0v-10h-1.5Z"/></svg>
+      <span id="taskAttachLabel">Attachments</span>
+    </button>
     <label class="field">
       <span>Category</span>
       <select id="taskCategory"></select>
@@ -265,6 +269,89 @@
     <div id="dayModalBody" class="day-detail"></div>
     <div class="modal-actions">
       <button id="closeDayBtn" class="btn-secondary">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Attachment modal -->
+<div id="attachmentModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="attachmentModalTitle">Attachments</h3>
+    <div id="attachmentList" class="attachment-list"></div>
+
+    <div class="section-divider first"><span>add new</span></div>
+    <label class="field">
+      <span>Type</span>
+      <select id="attachType">
+        <option value="note">Note (text)</option>
+        <option value="image">Image</option>
+        <option value="audio">Audio</option>
+        <option value="link">Link (video, webpage, anything)</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>Title</span>
+      <input type="text" id="attachTitle" placeholder="e.g. Ayat Al Kursi">
+    </label>
+    <label class="field" id="attachNoteField">
+      <span>Text</span>
+      <textarea id="attachNoteContent" rows="5" placeholder="Paste or type the text here..."></textarea>
+    </label>
+    <label class="field" id="attachFileField" hidden>
+      <span>File</span>
+      <input type="file" id="attachFileContent">
+      <span class="settings-note" id="attachFileNote"></span>
+    </label>
+    <label class="field" id="attachLinkField" hidden>
+      <span>URL</span>
+      <input type="text" id="attachLinkContent" placeholder="https://...">
+    </label>
+    <button id="addAttachmentBtn" class="btn-secondary full">+ Add attachment</button>
+
+    <div class="modal-actions">
+      <button id="closeAttachmentBtn" class="btn-primary full">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Resource/attachment modal -->
+<div id="resourceModal" class="modal-backdrop" hidden>
+  <div class="modal">
+    <h3 id="resourceModalTitle">Attachments</h3>
+    <div id="resourceList" class="resource-list"></div>
+
+    <div class="section-divider first"><span>add new</span></div>
+    <div class="resource-add-tabs" id="resourceTypeTabs">
+      <button type="button" data-type="note" class="active">Note</button>
+      <button type="button" data-type="image">Image</button>
+      <button type="button" data-type="audio">Audio</button>
+      <button type="button" data-type="video">Video</button>
+      <button type="button" data-type="link">Link</button>
+    </div>
+
+    <div class="resource-field" data-for="note">
+      <textarea id="resInputNote" rows="4" placeholder="e.g. paste Ayat al-Kursi text here, or any notes"></textarea>
+    </div>
+    <div class="resource-field" data-for="image" hidden>
+      <input type="file" id="resInputImage" accept="image/*">
+      <p class="settings-note">Images are resized automatically to keep them small.</p>
+    </div>
+    <div class="resource-field" data-for="audio" hidden>
+      <input type="file" id="resInputAudio" accept="audio/*">
+      <p class="settings-note">Stored on this device only — long recordings can fill up storage fast (3MB limit per file here). For long recitations, a Link is more reliable.</p>
+    </div>
+    <div class="resource-field" data-for="video" hidden>
+      <input type="file" id="resInputVideo" accept="video/*">
+      <p class="settings-note">Video rarely fits in browser storage (3MB limit per file here). A Link to the video is usually the better choice.</p>
+    </div>
+    <div class="resource-field" data-for="link" hidden>
+      <input type="text" id="resInputLinkTitle" placeholder="Title (optional)">
+      <input type="url" id="resInputLinkUrl" placeholder="https://...">
+    </div>
+
+    <button id="saveResourceBtn" class="btn-primary full">Add</button>
+    <div class="modal-actions">
+      <button id="closeResourceBtn" class="btn-secondary">Close</button>
     </div>
   </div>
 </div>

@@ -41,7 +41,7 @@ function renderSubtaskEditor() {
   });
 }
 document.getElementById('addSubtaskBtn').addEventListener('click', () => {
-  pendingSubtasks.push({ id: uid(), name: '' });
+  pendingSubtasks.push({ id: uid(), name: '', attachments: [] });
   renderSubtaskEditor();
   const inputs = document.querySelectorAll('#subtaskEditor input');
   if (inputs.length) inputs[inputs.length - 1].focus();
@@ -65,10 +65,16 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(state.categories));
-  localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(state.tasks));
-  localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(state.logs));
-  localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
+  try {
+    localStorage.setItem(STORAGE_KEYS.categories, JSON.stringify(state.categories));
+    localStorage.setItem(STORAGE_KEYS.tasks, JSON.stringify(state.tasks));
+    localStorage.setItem(STORAGE_KEYS.logs, JSON.stringify(state.logs));
+    localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
+    return true;
+  } catch (e) {
+    console.error('Failed to save state', e);
+    return false;
+  }
 }
 
 function seedDefaults() {
@@ -96,10 +102,10 @@ function seedDefaults() {
   saveState();
 }
 
-function task(categoryId, name, time, importance, notify, createdAt, days, subtasks) {
+function task(categoryId, name, time, importance, notify, createdAt, days, subtasks, attachments) {
   return {
     id: uid(), categoryId, name, time, importance, notify: !!notify,
-    days: days || [0, 1, 2, 3, 4, 5, 6], createdAt, subtasks: subtasks || [],
+    days: days || [0, 1, 2, 3, 4, 5, 6], createdAt, subtasks: subtasks || [], attachments: attachments || [],
   };
 }
 
@@ -236,10 +242,15 @@ function renderToday() {
               ${hasSubtasks ? `<span>${subtaskDoneCount(t, key)}/${t.subtasks.length} steps</span>` : ''}
             </div>
           </div>
+          <button class="attach-btn" data-attach-task="${t.id}">📎${t.attachments && t.attachments.length ? `<span class="attach-badge">${t.attachments.length}</span>` : ''}</button>
         `;
         row.querySelector('.task-check').addEventListener('click', (e) => {
           e.stopPropagation();
           toggleTaskDone(t.id, key);
+        });
+        row.querySelector('.attach-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openResourceModal(t.id, null);
         });
         row.addEventListener('click', () => openTaskModal(t));
         block.appendChild(row);
@@ -252,8 +263,15 @@ function renderToday() {
             const stDone = !!(sd && sd[st.id]);
             const srow = document.createElement('div');
             srow.className = 'subtask-row';
-            srow.innerHTML = `<div class="subtask-check ${stDone ? 'done' : ''}"></div><span class="${stDone ? 'done-text' : ''}">${escapeHtml(st.name)}</span>`;
-            srow.addEventListener('click', (e) => { e.stopPropagation(); toggleSubtask(t.id, st.id, key); });
+            srow.innerHTML = `<div class="subtask-check ${stDone ? 'done' : ''}"></div><span class="${stDone ? 'done-text' : ''}">${escapeHtml(st.name)}</span><button class="attach-btn" data-attach-task="${t.id}" data-attach-subtask="${st.id}">📎${st.attachments && st.attachments.length ? `<span class="attach-badge">${st.attachments.length}</span>` : ''}</button>`;
+            srow.addEventListener('click', (e) => {
+              if (e.target.closest('.attach-btn')) return;
+              toggleSubtask(t.id, st.id, key);
+            });
+            srow.querySelector('.attach-btn').addEventListener('click', (e) => {
+              e.stopPropagation();
+              openResourceModal(t.id, st.id);
+            });
             subList.appendChild(srow);
           });
           block.appendChild(subList);
@@ -547,7 +565,7 @@ document.getElementById('saveTaskBtn').addEventListener('click', () => {
   const time = document.getElementById('taskTime').value;
   const importance = document.getElementById('taskImportance').value;
   const notify = document.getElementById('taskNotify').checked;
-  const subtasks = pendingSubtasks.map(s => ({ id: s.id, name: s.name.trim() })).filter(s => s.name);
+  const subtasks = pendingSubtasks.map(s => ({ id: s.id, name: s.name.trim(), attachments: s.attachments || [] })).filter(s => s.name);
 
   if (editingTaskId) {
     const t = state.tasks.find(x => x.id === editingTaskId);
@@ -616,6 +634,147 @@ document.getElementById('deleteCategoryBtn').addEventListener('click', () => {
   saveState();
   document.getElementById('categoryModal').hidden = true;
   renderAll();
+});
+
+/* ---------- Resource / attachment modal ---------- */
+let resourceContext = { taskId: null, subtaskId: null };
+let resourceType = 'note';
+
+function getResourceOwner() {
+  const t = state.tasks.find(x => x.id === resourceContext.taskId);
+  if (!t) return null;
+  if (resourceContext.subtaskId) return t.subtasks.find(s => s.id === resourceContext.subtaskId) || null;
+  return t;
+}
+
+function openResourceModal(taskId, subtaskId) {
+  resourceContext = { taskId, subtaskId };
+  const owner = getResourceOwner();
+  if (!owner) return;
+  document.getElementById('resourceModalTitle').textContent = `Attachments — ${owner.name}`;
+  if (!owner.attachments) owner.attachments = [];
+  renderResourceList();
+  setResourceType('note');
+  document.getElementById('resourceModal').hidden = false;
+}
+
+function renderResourceList() {
+  const owner = getResourceOwner();
+  const list = document.getElementById('resourceList');
+  list.innerHTML = '';
+  const items = (owner && owner.attachments) || [];
+  if (items.length === 0) {
+    list.innerHTML = '<div class="resource-empty">No attachments yet.</div>';
+    return;
+  }
+  items.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'resource-item';
+    let inner = '';
+    if (r.type === 'note') inner = `<div class="resource-note">${escapeHtml(r.content)}</div>`;
+    else if (r.type === 'image') inner = `<img src="${r.content}" class="resource-image" alt="attachment">`;
+    else if (r.type === 'audio') inner = `<audio controls src="${r.content}"></audio>`;
+    else if (r.type === 'video') inner = `<video controls src="${r.content}" class="resource-video"></video>`;
+    else if (r.type === 'link') inner = `<a href="${escapeHtml(r.content)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title || r.content)}</a>`;
+    row.innerHTML = `${r.title && r.type !== 'link' ? `<div class="resource-title">${escapeHtml(r.title)}</div>` : ''}${inner}<button class="resource-delete" data-id="${r.id}">Remove</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.resource-delete').forEach(btn => btn.addEventListener('click', () => removeResource(btn.dataset.id)));
+}
+
+function removeResource(resId) {
+  const owner = getResourceOwner();
+  if (!owner) return;
+  owner.attachments = (owner.attachments || []).filter(r => r.id !== resId);
+  saveState();
+  renderResourceList();
+  renderAll();
+}
+
+function setResourceType(type) {
+  resourceType = type;
+  document.querySelectorAll('#resourceTypeTabs button').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  document.querySelectorAll('.resource-field').forEach(f => f.hidden = f.dataset.for !== type);
+}
+document.querySelectorAll('#resourceTypeTabs button').forEach(b => b.addEventListener('click', () => setResourceType(b.dataset.type)));
+document.getElementById('closeResourceBtn').addEventListener('click', () => document.getElementById('resourceModal').hidden = true);
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(file, maxWidth = 900, quality = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('saveResourceBtn').addEventListener('click', async () => {
+  const owner = getResourceOwner();
+  if (!owner) return;
+  if (!owner.attachments) owner.attachments = [];
+
+  let newResource = null;
+  try {
+    if (resourceType === 'note') {
+      const val = document.getElementById('resInputNote').value.trim();
+      if (!val) { showToast('Write something first'); return; }
+      newResource = { id: uid(), type: 'note', content: val, createdAt: Date.now() };
+    } else if (resourceType === 'link') {
+      const url = document.getElementById('resInputLinkUrl').value.trim();
+      const title = document.getElementById('resInputLinkTitle').value.trim();
+      if (!url) { showToast('Paste a link first'); return; }
+      newResource = { id: uid(), type: 'link', content: url, title, createdAt: Date.now() };
+    } else if (resourceType === 'image') {
+      const file = document.getElementById('resInputImage').files[0];
+      if (!file) { showToast('Choose an image first'); return; }
+      const dataUrl = await compressImage(file);
+      newResource = { id: uid(), type: 'image', content: dataUrl, createdAt: Date.now() };
+    } else {
+      const inputId = resourceType === 'audio' ? 'resInputAudio' : 'resInputVideo';
+      const file = document.getElementById(inputId).files[0];
+      if (!file) { showToast('Choose a file first'); return; }
+      if (file.size > 3 * 1024 * 1024) { showToast('That file is too big for on-device storage (3MB limit) — try a Link instead'); return; }
+      const dataUrl = await fileToDataUrl(file);
+      newResource = { id: uid(), type: resourceType, content: dataUrl, createdAt: Date.now() };
+    }
+  } catch (e) {
+    showToast('Could not read that file');
+    return;
+  }
+
+  owner.attachments.push(newResource);
+  const ok = saveState();
+  if (!ok) {
+    owner.attachments.pop();
+    showToast('Device storage is full — remove some attachments or use a Link instead');
+    return;
+  }
+  ['resInputNote', 'resInputLinkTitle', 'resInputLinkUrl'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['resInputImage', 'resInputAudio', 'resInputVideo'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderResourceList();
+  renderAll();
+  showToast('Attachment added');
 });
 
 /* ---------- Navigation ---------- */
