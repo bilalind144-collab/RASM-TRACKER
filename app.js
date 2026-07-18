@@ -707,17 +707,45 @@ function renderResourceList() {
   items.forEach(r => {
     const row = document.createElement('div');
     row.className = 'resource-item';
+    const canExpand = r.type === 'image' || r.type === 'note' || r.type === 'video';
     let inner = '';
-    if (r.type === 'note') inner = `<div class="resource-note">${escapeHtml(r.content)}</div>`;
-    else if (r.type === 'image') inner = `<img src="${r.content}" class="resource-image" alt="attachment">`;
+    if (r.type === 'note') inner = `<div class="resource-note" data-expand="${r.id}">${escapeHtml(r.content)}</div>`;
+    else if (r.type === 'image') inner = `<img src="${r.content}" class="resource-image" alt="attachment" data-expand="${r.id}">`;
     else if (r.type === 'audio') inner = `<audio controls src="${r.content}"></audio>`;
-    else if (r.type === 'video') inner = `<video controls src="${r.content}" class="resource-video"></video>`;
+    else if (r.type === 'video') inner = `<video controls src="${r.content}" class="resource-video" data-expand="${r.id}"></video>`;
     else if (r.type === 'link') inner = `<a href="${escapeHtml(r.content)}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.title || r.content)}</a>`;
-    row.innerHTML = `${r.title && r.type !== 'link' ? `<div class="resource-title">${escapeHtml(r.title)}</div>` : ''}${inner}<button class="resource-delete" data-id="${r.id}">Remove</button>`;
+    row.innerHTML = `
+      <div class="resource-actions">
+        ${canExpand ? `<button class="resource-action-btn resource-expand-btn" data-expand-btn="${r.id}" title="View full screen">⤢</button>` : ''}
+        <button class="resource-action-btn resource-delete" data-id="${r.id}" title="Remove">✕</button>
+      </div>
+      ${r.title && r.type !== 'link' ? `<div class="resource-title">${escapeHtml(r.title)}</div>` : ''}
+      ${inner}
+    `;
     list.appendChild(row);
   });
   list.querySelectorAll('.resource-delete').forEach(btn => btn.addEventListener('click', () => removeResource(btn.dataset.id)));
+  list.querySelectorAll('[data-expand], [data-expand-btn]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.expand || el.dataset.expandBtn;
+      const r = items.find(x => x.id === id);
+      if (r) openFullscreen(r);
+    });
+  });
 }
+
+function openFullscreen(resource) {
+  const el = document.getElementById('fullscreenContent');
+  if (resource.type === 'image') el.innerHTML = `<img src="${resource.content}" alt="attachment">`;
+  else if (resource.type === 'video') el.innerHTML = `<video src="${resource.content}" controls autoplay></video>`;
+  else if (resource.type === 'note') el.innerHTML = `<div class="fullscreen-note">${escapeHtml(resource.content)}</div>`;
+  else return;
+  document.getElementById('fullscreenViewer').hidden = false;
+}
+document.getElementById('closeFullscreenBtn').addEventListener('click', () => {
+  document.getElementById('fullscreenViewer').hidden = true;
+  document.getElementById('fullscreenContent').innerHTML = '';
+});
 
 function removeResource(resId) {
   const owner = getResourceOwner();
