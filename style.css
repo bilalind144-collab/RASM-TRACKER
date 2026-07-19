@@ -2,6 +2,8 @@
 :root{
   --bg: #0F1D22;
   --bg-elevated: #16272D;
+  --moon-dark: #17242A;
+  --moon-light: #F4E4C1;
   --bg-elevated-2: #1D323A;
   --text: #EDEAE2;
   --text-muted: #9AAEB0;
@@ -137,17 +139,31 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
 .ring-hero{ position:relative; width:140px; height:140px; margin: 12px auto 0; }
 .ring-bg-art{
   position:absolute; inset:-88px; z-index:0;
+  display:flex; align-items:center; justify-content:center;
   border-radius: 50%; overflow: hidden; pointer-events:none;
 }
-.aura-blob{ position:absolute; border-radius:50%; filter: blur(34px); }
-.ring-bg-art.is-aura .aura-a{ width:62%; height:62%; top:6%; left:6%; background: var(--aura-a); opacity:0.55; }
-.ring-bg-art.is-aura .aura-b{ width:55%; height:55%; bottom:2%; right:0; background: var(--aura-b); opacity:0.45; }
-.ring-bg-art.is-aura .aura-c{ width:42%; height:42%; top:32%; right:12%; background: var(--aura-c); opacity:0.4; }
+.moon-wrap{ position:relative; width:210px; height:210px; display:flex; align-items:center; justify-content:center; }
+.moon-disc{
+  width:170px; height:170px; border-radius:50%;
+  background: var(--moon-dark);
+  box-shadow: inset var(--moon-offset, 0) 0 0 0 var(--moon-light);
+  overflow:hidden;
+}
+.moon-star{ position:absolute; border-radius:50%; background: var(--moon-light); opacity:0.55; }
+.moon-star.s1{ width:4px; height:4px; top:14%; left:18%; }
+.moon-star.s2{ width:3px; height:3px; top:72%; left:14%; }
+.moon-star.s3{ width:3px; height:3px; top:18%; right:16%; }
+.moon-star.s4{ width:5px; height:5px; bottom:16%; right:20%; }
 .ring-bg-art.has-photo{ opacity: 1; }
 .ring-bg-photo{ width:100%; height:100%; object-fit: cover; display:block; }
 .ring-bg-photo-overlay{
   position:absolute; inset:0;
   background: radial-gradient(circle, var(--bg) 0%, var(--bg) 18%, transparent 62%);
+}
+
+.moon-phase-label{
+  text-align:center; margin: 12px 0 0; font-size:11px; color: var(--text-muted);
+  font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
 }
 .ring-bg-art svg{ width:100%; height:100%; }
 .ring{ position:relative; z-index:1; transform: rotate(-90deg); }

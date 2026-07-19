@@ -32,6 +32,8 @@ All data is stored **only in your phone's browser storage** (localStorage). Noth
 - **Manage** view: edit/add/delete categories and tasks, enable notifications, export/import a JSON backup, and a full data reset
 - Light/dark theme toggle
 - Installable as a home-screen app (PWA) with basic offline caching
+- **Custom ring background** — in Manage → Ring background, upload your own photo to replace the default view behind the daily progress ring. Change or remove it anytime; it only updates when you choose to.
+- **Real moon phase** — when no custom photo is set, the ring shows the actual current moon phase (New, Waxing Crescent, First Quarter, Waxing Gibbous, Full, Waning Gibbous, Last Quarter, Waning Crescent), computed offline from today's date — no internet or photo needed, and it updates on its own every day. A small label names the phase under the ring.
 - A small geometric mark (two overlapping squares forming an 8-point star, echoing the app's section dividers) as the logo, used both as the home-screen icon and the in-app header mark
 
 ## Ideas for later (not built yet, but easy to layer on)

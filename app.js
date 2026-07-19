@@ -180,31 +180,53 @@ function computeBestStreak30() {
   return best;
 }
 
-/* ---------- Ring background: time-of-day aura glow (fully offline) ---------- */
-function getAuraPalette(hour) {
-  if (hour >= 4 && hour < 7) return ['#F2A65A', '#E8768A', '#F7C873'];   // Fajr — soft dawn
-  if (hour >= 7 && hour < 12) return ['#4FA095', '#F2C572', '#7FD1C0']; // Morning — fresh
-  if (hour >= 12 && hour < 16) return ['#F5A623', '#4FA095', '#F7D774']; // Zuhr/Asr — bright
-  if (hour >= 16 && hour < 19) return ['#E8622C', '#F2A65A', '#C1666B']; // Maghrib — sunset
-  if (hour >= 19 && hour < 22) return ['#6B4F8C', '#B08D57', '#4B3F72']; // Isha — warm dusk
-  return ['#1F2F52', '#2B3A67', '#3E4A8C'];                              // Late night
+/* ---------- Ring background: real moon phase (offline, computed from date) ---------- */
+function getMoonPhase(date) {
+  // 0 = new moon, 0.5 = full moon, back to 1 = new moon again.
+  const synodicMonth = 29.530588861;
+  const knownNewMoon = Date.UTC(2000, 0, 6, 18, 14, 0) / 86400000; // a known new moon, in days since epoch
+  const days = date.getTime() / 86400000;
+  let phase = ((days - knownNewMoon) % synodicMonth) / synodicMonth;
+  if (phase < 0) phase += 1;
+  return phase;
+}
+
+function getMoonPhaseName(phase) {
+  if (phase < 0.03 || phase > 0.97) return 'New Moon';
+  if (phase < 0.22) return 'Waxing Crescent';
+  if (phase < 0.28) return 'First Quarter';
+  if (phase < 0.47) return 'Waxing Gibbous';
+  if (phase < 0.53) return 'Full Moon';
+  if (phase < 0.72) return 'Waning Gibbous';
+  if (phase < 0.78) return 'Last Quarter';
+  return 'Waning Crescent';
 }
 
 function renderRingBgArt() {
   const el = document.getElementById('ringBgArt');
+  const label = document.getElementById('moonPhaseLabel');
   if (!el) return;
   if (state.settings.ringBgImage) {
-    el.classList.remove('is-aura');
+    el.classList.remove('is-moon');
     el.classList.add('has-photo');
     el.innerHTML = `<img src="${state.settings.ringBgImage}" class="ring-bg-photo" alt=""><div class="ring-bg-photo-overlay"></div>`;
+    if (label) label.textContent = '';
   } else {
     el.classList.remove('has-photo');
-    el.classList.add('is-aura');
-    const [a, b, c] = getAuraPalette(new Date().getHours());
-    el.style.setProperty('--aura-a', a);
-    el.style.setProperty('--aura-b', b);
-    el.style.setProperty('--aura-c', c);
-    el.innerHTML = `<div class="aura-blob aura-a"></div><div class="aura-blob aura-b"></div><div class="aura-blob aura-c"></div>`;
+    el.classList.add('is-moon');
+    const phase = getMoonPhase(new Date());
+    const R = 85; // half of the 170px moon-disc, in px — must match the CSS size below
+    const offsetPx = Math.round(2 * R * (1 - 2 * phase));
+    el.style.setProperty('--moon-offset', offsetPx + 'px');
+    el.innerHTML = `
+      <div class="moon-wrap">
+        <div class="moon-star s1"></div>
+        <div class="moon-star s2"></div>
+        <div class="moon-star s3"></div>
+        <div class="moon-star s4"></div>
+        <div class="moon-disc"></div>
+      </div>`;
+    if (label) label.textContent = `🌙 ${getMoonPhaseName(phase)}`;
   }
 }
 
@@ -513,7 +535,7 @@ function renderManage() {
   notifStatus.textContent = perm === 'granted' ? 'Enabled on this device' : perm === 'unsupported' ? 'Not supported in this browser' : 'Not enabled yet';
   document.getElementById('enableNotifBtn').hidden = perm === 'granted' || perm === 'unsupported';
 
-  document.getElementById('ringBgStatus').textContent = state.settings.ringBgImage ? 'Custom photo set' : 'Using the daily aura glow';
+  document.getElementById('ringBgStatus').textContent = state.settings.ringBgImage ? 'Custom photo set' : 'Using the real moon phase';
   document.getElementById('removeRingBgBtn').hidden = !state.settings.ringBgImage;
 }
 
@@ -890,7 +912,7 @@ document.getElementById('removeRingBgBtn').addEventListener('click', () => {
   state.settings.ringBgImage = null;
   saveState();
   renderAll();
-  showToast('Reverted to the aura glow');
+  showToast('Reverted to the moon phase');
 });
 
 document.getElementById('enableNotifBtn').addEventListener('click', async () => {
