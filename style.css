@@ -137,10 +137,12 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
 .ring-hero{ position:relative; width:140px; height:140px; margin: 12px auto 0; }
 .ring-bg-art{
   position:absolute; inset:-88px; z-index:0;
-  display:flex; align-items:center; justify-content:center;
-  opacity: 0.34; color: var(--accent); pointer-events:none;
-  border-radius: 50%; overflow: hidden;
+  border-radius: 50%; overflow: hidden; pointer-events:none;
 }
+.aura-blob{ position:absolute; border-radius:50%; filter: blur(34px); }
+.ring-bg-art.is-aura .aura-a{ width:62%; height:62%; top:6%; left:6%; background: var(--aura-a); opacity:0.55; }
+.ring-bg-art.is-aura .aura-b{ width:55%; height:55%; bottom:2%; right:0; background: var(--aura-b); opacity:0.45; }
+.ring-bg-art.is-aura .aura-c{ width:42%; height:42%; top:32%; right:12%; background: var(--aura-c); opacity:0.4; }
 .ring-bg-art.has-photo{ opacity: 1; }
 .ring-bg-photo{ width:100%; height:100%; object-fit: cover; display:block; }
 .ring-bg-photo-overlay{

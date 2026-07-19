@@ -180,39 +180,31 @@ function computeBestStreak30() {
   return best;
 }
 
-/* ---------- Daily background art (rotates automatically, fully offline) ---------- */
-const RING_BG_ARTS = [
-  // Crescent moon with stars
-  `<svg viewBox="0 0 200 200"><path d="M122 55a48 48 0 1 0 8 84 58 58 0 0 1-8-84Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M152 38l4 10 10 4-10 4-4 10-4-10-10-4 10-4Z" fill="currentColor" stroke="none"/><path d="M58 140l3.5 8 8 3.5-8 3.5-3.5 8-3.5-8-8-3.5 8-3.5Z" fill="currentColor" stroke="none"/></svg>`,
-  // Mosque silhouette
-  `<svg viewBox="0 0 200 200"><path d="M42 168v-48h18v-18a8 8 0 0 1 16 0v18h48v-18a8 8 0 0 1 16 0v18h18v48Z" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="100" cy="72" r="22" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M100 50V32" stroke="currentColor" stroke-width="2.5"/><path d="M52 120V64M148 120V64" stroke="currentColor" stroke-width="2.5"/></svg>`,
-  // 8-point star (echoes the app logo)
-  `<svg viewBox="0 0 200 200"><rect x="55" y="55" width="90" height="90" fill="none" stroke="currentColor" stroke-width="3"/><rect x="55" y="55" width="90" height="90" fill="none" stroke="currentColor" stroke-width="3" transform="rotate(45 100 100)"/></svg>`,
-  // Arabesque flowing vine
-  `<svg viewBox="0 0 200 200"><path d="M28 100c20-42 62-42 72 0s52 42 72 0M28 100c20 42 62 42 72 0s52-42 72 0" fill="none" stroke="currentColor" stroke-width="2.5"/><circle cx="100" cy="100" r="4" fill="currentColor"/></svg>`,
-  // Ramadan lantern (fanous)
-  `<svg viewBox="0 0 200 200"><path d="M85 48h30M100 48V38M74 60h52l-9 68H83Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M82 128h36l-7 22H89Z" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M92 150v16M108 150v16" stroke="currentColor" stroke-width="2.5"/><path d="M88 78h24M83 98h34M88 118h24" stroke="currentColor" stroke-width="2"/></svg>`,
-  // Mihrab arch with radiating light (a day's five prayers, sunrise to night)
-  `<svg viewBox="0 0 200 200"><path d="M58 162V96a42 42 0 0 1 84 0v66" fill="none" stroke="currentColor" stroke-width="3"/><path d="M100 58V26M68 68 46 46M132 68l22-22" stroke="currentColor" stroke-width="2.5"/></svg>`,
-  // Twelve-point geometric rosette
-  `<svg viewBox="0 0 200 200"><g fill="none" stroke="currentColor" stroke-width="2.5"><rect x="58" y="58" width="84" height="84"/><rect x="58" y="58" width="84" height="84" transform="rotate(30 100 100)"/><rect x="58" y="58" width="84" height="84" transform="rotate(60 100 100)"/></g></svg>`,
-];
-
-function dayOfYear(d) {
-  const start = new Date(d.getFullYear(), 0, 0);
-  return Math.floor((d - start) / 86400000);
+/* ---------- Ring background: time-of-day aura glow (fully offline) ---------- */
+function getAuraPalette(hour) {
+  if (hour >= 4 && hour < 7) return ['#F2A65A', '#E8768A', '#F7C873'];   // Fajr — soft dawn
+  if (hour >= 7 && hour < 12) return ['#4FA095', '#F2C572', '#7FD1C0']; // Morning — fresh
+  if (hour >= 12 && hour < 16) return ['#F5A623', '#4FA095', '#F7D774']; // Zuhr/Asr — bright
+  if (hour >= 16 && hour < 19) return ['#E8622C', '#F2A65A', '#C1666B']; // Maghrib — sunset
+  if (hour >= 19 && hour < 22) return ['#6B4F8C', '#B08D57', '#4B3F72']; // Isha — warm dusk
+  return ['#1F2F52', '#2B3A67', '#3E4A8C'];                              // Late night
 }
 
 function renderRingBgArt() {
   const el = document.getElementById('ringBgArt');
   if (!el) return;
   if (state.settings.ringBgImage) {
+    el.classList.remove('is-aura');
     el.classList.add('has-photo');
     el.innerHTML = `<img src="${state.settings.ringBgImage}" class="ring-bg-photo" alt=""><div class="ring-bg-photo-overlay"></div>`;
   } else {
     el.classList.remove('has-photo');
-    const idx = dayOfYear(new Date()) % RING_BG_ARTS.length;
-    el.innerHTML = RING_BG_ARTS[idx];
+    el.classList.add('is-aura');
+    const [a, b, c] = getAuraPalette(new Date().getHours());
+    el.style.setProperty('--aura-a', a);
+    el.style.setProperty('--aura-b', b);
+    el.style.setProperty('--aura-c', c);
+    el.innerHTML = `<div class="aura-blob aura-a"></div><div class="aura-blob aura-b"></div><div class="aura-blob aura-c"></div>`;
   }
 }
 
@@ -521,7 +513,7 @@ function renderManage() {
   notifStatus.textContent = perm === 'granted' ? 'Enabled on this device' : perm === 'unsupported' ? 'Not supported in this browser' : 'Not enabled yet';
   document.getElementById('enableNotifBtn').hidden = perm === 'granted' || perm === 'unsupported';
 
-  document.getElementById('ringBgStatus').textContent = state.settings.ringBgImage ? 'Custom photo set' : 'Using the default design';
+  document.getElementById('ringBgStatus').textContent = state.settings.ringBgImage ? 'Custom photo set' : 'Using the daily aura glow';
   document.getElementById('removeRingBgBtn').hidden = !state.settings.ringBgImage;
 }
 
@@ -898,7 +890,7 @@ document.getElementById('removeRingBgBtn').addEventListener('click', () => {
   state.settings.ringBgImage = null;
   saveState();
   renderAll();
-  showToast('Reverted to the default design');
+  showToast('Reverted to the aura glow');
 });
 
 document.getElementById('enableNotifBtn').addEventListener('click', async () => {
