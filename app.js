@@ -15,7 +15,7 @@ let state = {
   categories: [],
   tasks: [],
   logs: {},
-  settings: { theme: 'dark', notifPermission: 'default' },
+  settings: { theme: 'dark', notifPermission: 'default', ringBgImage: null },
 };
 
 let calendarCursor = new Date(); // month currently shown in calendar view
@@ -58,7 +58,7 @@ function loadState() {
     state.categories = c ? JSON.parse(c) : null;
     state.tasks = t ? JSON.parse(t) : null;
     state.logs = l ? JSON.parse(l) : {};
-    state.settings = s ? JSON.parse(s) : { theme: 'dark', notifPermission: 'default' };
+    state.settings = s ? JSON.parse(s) : { theme: 'dark', notifPermission: 'default', ringBgImage: null };
   } catch (e) {
     console.error('Failed to load state', e);
   }
@@ -99,7 +99,7 @@ function seedDefaults() {
     task(fin.id, 'Log today\'s expenses', '21:30', 'medium', false, today),
   ];
   state.logs = {};
-  state.settings = { theme: 'dark', notifPermission: 'default' };
+  state.settings = { theme: 'dark', notifPermission: 'default', ringBgImage: null };
   saveState();
 }
 
@@ -206,8 +206,14 @@ function dayOfYear(d) {
 function renderRingBgArt() {
   const el = document.getElementById('ringBgArt');
   if (!el) return;
-  const idx = dayOfYear(new Date()) % RING_BG_ARTS.length;
-  el.innerHTML = RING_BG_ARTS[idx];
+  if (state.settings.ringBgImage) {
+    el.classList.add('has-photo');
+    el.innerHTML = `<img src="${state.settings.ringBgImage}" class="ring-bg-photo" alt=""><div class="ring-bg-photo-overlay"></div>`;
+  } else {
+    el.classList.remove('has-photo');
+    const idx = dayOfYear(new Date()) % RING_BG_ARTS.length;
+    el.innerHTML = RING_BG_ARTS[idx];
+  }
 }
 
 /* ---------- Rendering: Today ---------- */
@@ -514,6 +520,9 @@ function renderManage() {
   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
   notifStatus.textContent = perm === 'granted' ? 'Enabled on this device' : perm === 'unsupported' ? 'Not supported in this browser' : 'Not enabled yet';
   document.getElementById('enableNotifBtn').hidden = perm === 'granted' || perm === 'unsupported';
+
+  document.getElementById('ringBgStatus').textContent = state.settings.ringBgImage ? 'Custom photo set' : 'Using the default design';
+  document.getElementById('removeRingBgBtn').hidden = !state.settings.ringBgImage;
 }
 
 function renderAll() {
@@ -864,6 +873,34 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 });
 
 /* ---------- Notifications ---------- */
+/* ---------- Ring background photo ---------- */
+document.getElementById('ringBgUpload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await compressImage(file, 700, 0.8);
+    const prev = state.settings.ringBgImage;
+    state.settings.ringBgImage = dataUrl;
+    const ok = saveState();
+    if (!ok) {
+      state.settings.ringBgImage = prev;
+      showToast('Device storage is full — remove some attachments first');
+    } else {
+      renderAll();
+      showToast('Background updated');
+    }
+  } catch (err) {
+    showToast('Could not read that image');
+  }
+  e.target.value = '';
+});
+document.getElementById('removeRingBgBtn').addEventListener('click', () => {
+  state.settings.ringBgImage = null;
+  saveState();
+  renderAll();
+  showToast('Reverted to the default design');
+});
+
 document.getElementById('enableNotifBtn').addEventListener('click', async () => {
   if (!('Notification' in window)) { showToast('Notifications not supported here'); return; }
   const perm = await Notification.requestPermission();

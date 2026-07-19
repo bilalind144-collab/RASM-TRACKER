@@ -72,6 +72,14 @@ body{
   border-radius: 12px;
   display:flex; align-items:center; justify-content:center;
 }
+.brand-mark svg{
+  animation: brand-spin 14s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes brand-spin{
+  from{ transform: rotate(0deg); }
+  to{ transform: rotate(360deg); }
+}
 .brand-text h1{
   font-family: var(--font-display);
   font-weight: 600;
@@ -128,9 +136,16 @@ main{ flex:1; padding: 4px 20px 100px; overflow-y: auto; }
 /* ===== Ring hero ===== */
 .ring-hero{ position:relative; width:140px; height:140px; margin: 12px auto 0; }
 .ring-bg-art{
-  position:absolute; inset:-42px; z-index:0;
+  position:absolute; inset:-88px; z-index:0;
   display:flex; align-items:center; justify-content:center;
-  opacity: 0.28; color: var(--accent); pointer-events:none;
+  opacity: 0.34; color: var(--accent); pointer-events:none;
+  border-radius: 50%; overflow: hidden;
+}
+.ring-bg-art.has-photo{ opacity: 1; }
+.ring-bg-photo{ width:100%; height:100%; object-fit: cover; display:block; }
+.ring-bg-photo-overlay{
+  position:absolute; inset:0;
+  background: radial-gradient(circle, var(--bg) 0%, var(--bg) 18%, transparent 62%);
 }
 .ring-bg-art svg{ width:100%; height:100%; }
 .ring{ position:relative; z-index:1; transform: rotate(-90deg); }
